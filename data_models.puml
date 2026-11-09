@@ -50,7 +50,7 @@ package "Domain models" {
   enum RequestStatus {
     Draft
     Submitted
-    InWork
+    InReview
     InRework
     Approved
   }
