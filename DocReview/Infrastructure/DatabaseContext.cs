@@ -3,17 +3,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DocReview.Infrastructure;
 
-public class DatabaseContext : DbContext
+public class DatabaseContext(DbContextOptions<DatabaseContext> options) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<ReviewRequest> ReviewRequests => Set<ReviewRequest>();
     public DbSet<DocumentVersion> DocumentVersions => Set<DocumentVersion>();
     public DbSet<Comment> Comments => Set<Comment>();
-
-    public DatabaseContext(DbContextOptions<DatabaseContext> options)
-        : base(options)
-    {
-    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
