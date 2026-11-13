@@ -15,8 +15,8 @@ public class JwtService: ITokenService
     private readonly int _expiryMinutes;
     
     public JwtService(
-        string secret,
         string issuer,
+        string secret,
         string audience,
         int expireMinutes)
     {

@@ -25,7 +25,12 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
         _db.ReviewRequests.Add(reviewRequest);
         _db.SaveChanges();
 
-        return MapReviewRequest(reviewRequest);
+        // Reload with Author included to avoid NullReferenceException in MapReviewRequest
+        var savedRequest = _db.ReviewRequests
+            .Include(r => r.Author)
+            .FirstOrDefault(r => r.Id == reviewRequest.Id);
+        
+        return MapReviewRequest(savedRequest);
     }
 
     public RequestDto GetById(Guid requestId, Guid viewerId)
@@ -244,7 +249,7 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
         };
         
         _db.DocumentVersions.Add(version);
-        request.Status = RequestStatus.InRework;
+        request.Status = RequestStatus.InReview;
         request.UpdatedAt = DateTime.UtcNow;
         _db.ReviewRequests.Update(request);
         _db.SaveChanges();

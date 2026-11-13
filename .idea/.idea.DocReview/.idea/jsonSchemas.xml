@@ -14,6 +14,9 @@
                   <Item>
                     <option name="path" value="DocReview/appsettings.json" />
                   </Item>
+                  <Item>
+                    <option name="path" value="DocReview/appsettings.Development.json" />
+                  </Item>
                 </list>
               </option>
             </SchemaInfo>
