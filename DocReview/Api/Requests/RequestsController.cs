@@ -24,13 +24,13 @@ public class RequestsController(IRequestManagementService requestManagementServi
     public async Task<ActionResult<RequestCreationResponse>> Create(RequestCreationRequest request)
     {
         var userId = RequireUserId();
-        var user = Task.FromResult(_authService.GetCurrentUser(userId)).Result;
+        var user = _authService.GetCurrentUser(userId);
 
         if (user.Role is not (UserRole.Admin or UserRole.Author))
         {
             return Forbid();
         }
-        
+
         var created = _requestManagementService.Create(userId, request);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, new RequestCreationResponse(created));
     }
@@ -40,7 +40,7 @@ public class RequestsController(IRequestManagementService requestManagementServi
     public async Task<ActionResult<IReadOnlyList<RequestDto>>> ListMyRequests()
     {
         var userId = RequireUserId();
-        var user = Task.FromResult(_authService.GetCurrentUser(userId)).Result;
+        var user = _authService.GetCurrentUser(userId);
 
         if (user.Role is not (UserRole.Admin or UserRole.Author))
         {
@@ -49,7 +49,7 @@ public class RequestsController(IRequestManagementService requestManagementServi
 
         return Ok(_requestManagementService.ListByAuthor(userId));
     }
-    
+
     [HttpGet("{id:guid}")]
     [Authorize]
     public async Task<ActionResult<RequestDto>> GetById(Guid id)
@@ -58,34 +58,34 @@ public class RequestsController(IRequestManagementService requestManagementServi
         var result = _requestManagementService.GetById(id, userId);
         return Ok(result);
     }
-    
+
     [HttpGet("available")]
     [Authorize(Roles = "Reviewer,Admin")]
     public async Task<ActionResult<IReadOnlyList<RequestDto>>> Available()
     {
         var userId = RequireUserId();
-        var user = await Task.FromResult(_authService.GetCurrentUser(userId));
-        
+        var user = _authService.GetCurrentUser(userId);
+
         if (user.Role is not (UserRole.Reviewer or UserRole.Admin))
         {
             return Forbid();
         }
-        
+
         return Ok(_requestManagementService.ListAvailableToReviewer(userId));
     }
-    
+
     [HttpGet("assigned")]
     [Authorize(Roles = "Reviewer,Admin")]
     public async Task<ActionResult<IReadOnlyList<RequestDto>>> Assigned()
     {
         var userId = RequireUserId();
-        var user = await Task.FromResult(_authService.GetCurrentUser(userId));
-        
+        var user = _authService.GetCurrentUser(userId);
+
         if (user.Role is not (UserRole.Reviewer or UserRole.Admin))
         {
             return Forbid();
         }
-        
+
         return Ok(_requestManagementService.ListAssignedToReviewer(userId));
     }
 
@@ -94,8 +94,8 @@ public class RequestsController(IRequestManagementService requestManagementServi
     public async Task<IActionResult> TakeIntoWork(Guid id)
     {
         var userId = RequireUserId();
-        var user = await Task.FromResult(_authService.GetCurrentUser(userId));
-        
+        var user = _authService.GetCurrentUser(userId);
+
         if (user.Role is not (UserRole.Reviewer or UserRole.Admin))
         {
             return Forbid();
@@ -106,10 +106,11 @@ public class RequestsController(IRequestManagementService requestManagementServi
     }
 
     [HttpPost("{id:guid}/comment")]
+    [Authorize(Roles = "Author,Admin,Reviewer")]
     public async Task<IActionResult> AddComment(Guid id, [FromBody] AddCommentRequest request)
     {
         var userId = RequireUserId();
-        
+
         _requestManagementService.AddComment(id, userId, request.Text, request.SendToRework);
         return Ok();
     }
@@ -119,14 +120,13 @@ public class RequestsController(IRequestManagementService requestManagementServi
     public async Task<IActionResult> Approve(Guid id)
     {
         var userId = RequireUserId();
-        var user = await Task.FromResult(_authService.GetCurrentUser(userId));
-        
+        var user = _authService.GetCurrentUser(userId);
+
         if (user.Role is not (UserRole.Reviewer or UserRole.Admin))
         {
             return Forbid();
         }
 
-        
         _requestManagementService.Approve(id, userId);
         return Ok();
     }
@@ -136,7 +136,7 @@ public class RequestsController(IRequestManagementService requestManagementServi
     public async Task<IActionResult> AddVersion(Guid id, [FromBody] AddVersionRequest request)
     {
         var userId = RequireUserId();
-        var user = await Task.FromResult(_authService.GetCurrentUser(userId));
+        var user = _authService.GetCurrentUser(userId);
 
         if (user.Role is not (UserRole.Author or UserRole.Admin))
         {
@@ -146,7 +146,7 @@ public class RequestsController(IRequestManagementService requestManagementServi
         _requestManagementService.AddVersion(id, userId, request.FileReference, request.FileName, request.FileSize, request.MediaType);
         return Ok();
     }
-   
+
     private Guid RequireUserId()
     {
         var userId = User.GetUserId();

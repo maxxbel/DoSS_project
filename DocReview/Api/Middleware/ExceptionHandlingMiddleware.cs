@@ -25,7 +25,7 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
     private async Task HandleExceptionAsync(HttpContext context, Exception exception)
     {
         _logger.LogError(
-            $"Unhandled exception occured during processing request. Type={exception.GetType().FullName}, Message={exception.Message}");
+            $"Unhandled exception occurred during processing request. Type={exception.GetType().FullName}, Message={exception.Message}");
 
         var response = context.Response;
         var (statusCode, title, detail) = exception switch
@@ -43,6 +43,6 @@ public class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Exception
         var options = new JsonSerializerOptions {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
-        await response.WriteAsJsonAsync(JsonSerializer.Serialize(payload, options));
+        await response.WriteAsJsonAsync(payload, options);
     }
 }

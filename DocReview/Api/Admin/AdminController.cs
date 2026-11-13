@@ -25,11 +25,11 @@ public class AdminController(IUserManagementService userManagementService, IRequ
         }
 
         [HttpPost("requests/{id:guid}/reassign")]
-        public Task<IActionResult> ReassignRequest(Guid id, [FromBody] ReassignReviewerRequest request)
+        public IActionResult ReassignReviewer(Guid id, [FromBody] ReassignReviewerRequest request)
         {
                 var adminId = RequireUserId();
                 _requestManagementService.ReassignReviewer(id, adminId, request.NewReviewerId);
-                return Task.FromResult<IActionResult>(Ok());
+                return Ok();
         }
 
         [HttpDelete("requests/{id:guid}")]
