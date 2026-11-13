@@ -40,7 +40,6 @@ public class DatabaseContext(DbContextOptions<DatabaseContext> options) : DbCont
         modelBuilder.Entity<DocumentVersion>(entity =>
         {
             entity.HasKey(e => e.Id); 
-            entity.Property(e => e.Id).HasMaxLength(1024).IsRequired();
             entity.Property(e => e.FileName).HasMaxLength(512).IsRequired();
             entity.Property(e => e.MediaType).HasMaxLength(256);
             entity.HasOne(e => e.ReviewRequest)

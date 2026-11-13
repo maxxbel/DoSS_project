@@ -50,12 +50,7 @@ public class AuthService : IAuthService
             throw new InfrastructureNotFoundException("User", request.Username);
         }
 
-        if (PasswordHasher.Verify(request.Password, user.PasswordHash, user.PasswordSalt))
-        {
-            throw new InfrastructureForbiddenException("Invalid username or password.");
-        }
-        
-        return new AuthResponse(_tokenService.GenerateToken(user), MapUser(user));
+        return !PasswordHasher.Verify(request.Password, user.PasswordHash, user.PasswordSalt) ? throw new InfrastructureForbiddenException("Invalid username or password.") : new AuthResponse(_tokenService.GenerateToken(user), MapUser(user));
     }
 
     public UserDto GetCurrentUser(Guid userId)

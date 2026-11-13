@@ -16,13 +16,13 @@ public static class PasswordHasher
         return (Convert.ToBase64String(hash), Convert.ToBase64String(salt));
     }
 
-    public static bool Verify(string hash, string salt, string password)
+    public static bool Verify(string password, string hash, string salt)
     {
         byte[] saltBytes = Convert.FromBase64String(salt);
         byte[] expectedHash = Convert.FromBase64String(hash);
         
         byte[] actualHash = KeyDerivation.Pbkdf2(password, saltBytes, KeyDerivationPrf.HMACSHA256, Iterations, HashSize); 
         
-        return CryptographicOperations.FixedTimeEquals(actualHash, saltBytes);
+        return CryptographicOperations.FixedTimeEquals(actualHash, expectedHash); 
     }
 }

@@ -30,9 +30,14 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
 
     public RequestDto GetById(Guid requestId, Guid viewerId)
     {
-        var reviewRequest = _db.ReviewRequests.Find(requestId);
+        var reviewRequest = _db.ReviewRequests
+            .Include(r => r.Author)
+            .Include(r => r.AssignedReviewer)
+            .Include(r => r.Versions).ThenInclude(v => v.UploadedBy)
+            .Include(r => r.Comments).ThenInclude(c => c.Author)
+            .FirstOrDefault(r => r.Id == requestId);
 
-        if (reviewRequest is null)
+        if (reviewRequest == null)
         {
             throw new InfrastructureNotFoundException("Request", requestId);
         }
@@ -55,12 +60,13 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
       if (author.Role != UserRole.Author && author.Role != UserRole.Admin)
       {
           throw new InfrastructureForbiddenException("Only authors and admins can list requests by author.");
-      }
-      
-      return
+      }        return
       [
           .. _db.ReviewRequests
               .AsNoTracking()
+              .Include(r => r.Author)
+              .Include(r => r.Versions).ThenInclude(v => v.UploadedBy)
+              .Include(r => r.Comments).ThenInclude(c => c.Author)
               .Where(r => r.AuthorId == authorId)
               .OrderByDescending(r => r.UpdatedAt)
               .Select(MapReviewRequest)
@@ -73,7 +79,7 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
 
         if (reviewer.Role != UserRole.Admin && reviewer.Role != UserRole.Reviewer)
         {
-            throw new InfrastructureForbiddenException("Only authors and reviewers can list requests by reviewer.");
+            throw new InfrastructureForbiddenException("Only reviewers and admins can list available requests.");
         }
         
         return
@@ -84,9 +90,8 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
                 .Include(r => r.Versions).ThenInclude(v => v.UploadedBy)
                 .Include(r => r.Comments).ThenInclude(c => c.Author)
                 .Where(r => r.Status == RequestStatus.Submitted &&
-                            (r.AssignedReviewer == null || r.AssignedReviewerId == reviewerId))
+                            (r.AssignedReviewerId == null || r.AssignedReviewerId == reviewerId))
                 .OrderByDescending(r => r.CreatedAt)
-                .ToList()
                 .Select(MapReviewRequest)
         ];
     }
@@ -97,7 +102,7 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
 
         if (reviewer.Role != UserRole.Admin && reviewer.Role != UserRole.Reviewer)
         {
-            throw new InfrastructureForbiddenException("Only authors and reviewers can list requests by reviewer.");
+            throw new InfrastructureForbiddenException("Only reviewers and admins can list assigned requests.");
         }
         
         return
@@ -110,7 +115,6 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
                 .Where(r => r.Status == RequestStatus.Submitted &&
                              r.AssignedReviewerId == reviewerId)
                 .OrderByDescending(r => r.CreatedAt)
-                .ToList()
                 .Select(MapReviewRequest)
         ];
     }
@@ -121,7 +125,7 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
 
         if (reviewer.Role != UserRole.Admin && reviewer.Role != UserRole.Reviewer)
         {
-            throw new InfrastructureForbiddenException("Only authors and reviewers can take into requests.");
+            throw new InfrastructureForbiddenException("Only reviewers and admins can take requests into work.");
         }
 
         var request = GetReviewRequest(requestId);
@@ -184,9 +188,9 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
     {
         var reviewer = GetUser(reviewerId);
 
-        if (reviewer.Role == UserRole.Author)
+        if (reviewer.Role != UserRole.Admin && reviewer.Role != UserRole.Reviewer)
         {
-            throw new InfrastructureForbiddenException("Only reviewers and admins can approve requests."); 
+            throw new InfrastructureForbiddenException("Only reviewers and admins can approve requests.");
         } 
         var request = GetReviewRequest(requestId);
 
@@ -209,7 +213,7 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
     {
         var author =  GetUser(authorId);
 
-        if (author.Role == UserRole.Reviewer)
+        if (author.Role != UserRole.Admin && author.Role != UserRole.Author)
         {
             throw new InfrastructureForbiddenException("Only authors and admins can add versions.");
         }
@@ -276,7 +280,7 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
         var admin = GetUser(adminId);
         if (admin.Role != UserRole.Admin)
         {
-            throw new InfrastructureForbiddenException("Only admins can delete reviewers.");
+            throw new InfrastructureForbiddenException("Only admins can delete requests.");
         }
         
         var request = GetReviewRequest(requestId);
@@ -284,7 +288,7 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
         _db.SaveChanges();
     }
 
-    private RequestDto MapReviewRequest(ReviewRequest reviewRequest)
+    private static RequestDto MapReviewRequest(ReviewRequest reviewRequest)
     {
         return new RequestDto(
             reviewRequest.Id,

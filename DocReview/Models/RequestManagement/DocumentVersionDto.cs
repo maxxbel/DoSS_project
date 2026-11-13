@@ -6,8 +6,8 @@ public record DocumentVersionDto(
     string FileReference,
     string FileName,
     long? FileSize,
-    string? Mediatype,
-    Guid UploadedByUserid,
+    string? MediaType,
+    Guid UploadedById,
     string UploadedByUsername,
     DateTime UploadedAt
 );
