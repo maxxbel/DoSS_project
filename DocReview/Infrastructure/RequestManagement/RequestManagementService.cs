@@ -244,7 +244,7 @@ public class RequestManagementService(DatabaseContext db): IRequestManagementSer
         };
         
         _db.DocumentVersions.Add(version);
-        request.Status = RequestStatus.Submitted;
+        request.Status = RequestStatus.InRework;
         request.UpdatedAt = DateTime.UtcNow;
         _db.ReviewRequests.Update(request);
         _db.SaveChanges();

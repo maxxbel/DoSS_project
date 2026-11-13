@@ -40,7 +40,7 @@ public class AuthController(IAuthService authService, IUserManagementService use
         {
             return Forbid();
         }
-        
+
         var user = await Task.FromResult(_userManagementService.CreateUser(dto));
 
         if (isAuthenticated && userRole != UserRole.Admin && dto.Role == UserRole.Admin)
@@ -48,12 +48,12 @@ public class AuthController(IAuthService authService, IUserManagementService use
             return Forbid();
         }
 
-        var token = await Task.FromResult(_authService.Login(new LoginRequest
+        var tokenResponse = await Task.FromResult(_authService.Login(new LoginRequest
         {
             Username = dto.Username,
             Password = dto.Password
         }));
-        return Ok(new AuthResponse(token.Token, user));
+        return Ok(new AuthResponse(tokenResponse.Token, user));
     }
 
     private bool AdminAlreadyExists()
