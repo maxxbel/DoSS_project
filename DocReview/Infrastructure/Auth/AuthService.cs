@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using DocReview.DataModels;
 using DocReview.Infrastructure.Security;
 using DocReview.Models.Auth;
@@ -10,6 +11,14 @@ public class AuthService : IAuthService
     private readonly DatabaseContext _db;
     private readonly ITokenService _tokenService;
 
+    private static readonly string[] passwordRegexRules =
+    {
+        "[0-9]", // digit
+        "[A-Z]", // lowercase
+        "[a-z]", // uppercase 
+        "[!@#$%^&*()_-+=\\]" // special character
+    };
+
     public AuthService(DatabaseContext db, ITokenService tokenService)
     {
         _db = db;
@@ -21,6 +30,12 @@ public class AuthService : IAuthService
         if (_db.Users.Any(x => x.Username == request.Username))
         {
             throw new InfrastructureConflictException($"User with username '{request.Username}' already exists.");
+        }
+       
+        // password rules validation
+        if (!ValidatePasswordRules(request.Password))
+        {
+            throw new InfrastructureForbiddenException("Password does not follow necessary rules.");
         }
         
         var (hash, salt) = PasswordHasher.Hash(request.Password);
@@ -64,4 +79,18 @@ public class AuthService : IAuthService
     {
         return new UserDto(user.Id, user.Username, user.Role, user.CreatedAt);
     }
+
+    private static bool ValidatePasswordRules(string password)
+    {
+        var flag = passwordRegexRules.All(rule => Regex.IsMatch(password, rule));
+
+        if (password.Length < 8)
+        {
+            flag = false;
+        }
+        
+        return flag;
+    }
+    
+    
 }
