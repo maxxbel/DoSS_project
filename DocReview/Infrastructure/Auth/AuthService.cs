@@ -1,0 +1,96 @@
+using System.Text.RegularExpressions;
+using DocReview.DataModels;
+using DocReview.Infrastructure.Security;
+using DocReview.Models.Auth;
+using Microsoft.EntityFrameworkCore;
+
+namespace DocReview.Infrastructure.Auth;
+
+public class AuthService : IAuthService
+{
+    private readonly DatabaseContext _db;
+    private readonly ITokenService _tokenService;
+
+    private static readonly string[] passwordRegexRules =
+    {
+        "[0-9]", // digit
+        "[A-Z]", // lowercase
+        "[a-z]", // uppercase 
+        "[!@#$%^&*()_-+=\\]" // special character
+    };
+
+    public AuthService(DatabaseContext db, ITokenService tokenService)
+    {
+        _db = db;
+        _tokenService = tokenService;
+    }
+    
+    public UserDto Register(RegisterRequest request)
+    {
+        if (_db.Users.Any(x => x.Username == request.Username))
+        {
+            throw new InfrastructureConflictException($"User with username '{request.Username}' already exists.");
+        }
+       
+        // password rules validation
+        if (!ValidatePasswordRules(request.Password))
+        {
+            throw new InfrastructureForbiddenException("Password does not follow necessary rules.");
+        }
+        
+        var (hash, salt) = PasswordHasher.Hash(request.Password);
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Username = request.Username,
+            PasswordHash = hash,
+            PasswordSalt = salt,
+            Role = request.Role,
+            CreatedAt = DateTime.UtcNow
+        };
+        
+        _db.Users.Add(user);
+        _db.SaveChanges();
+
+        return MapUser(user);
+    }
+
+    public AuthResponse Login(LoginRequest request)
+    {
+        var user = _db.Users.AsNoTracking().FirstOrDefault(u => u.Username == request.Username);
+
+        if (user == null)
+        {
+            throw new InfrastructureNotFoundException("User", request.Username);
+        }
+
+        return !PasswordHasher.Verify(request.Password, user.PasswordHash, user.PasswordSalt) ? throw new InfrastructureForbiddenException("Invalid username or password.") : new AuthResponse(_tokenService.GenerateToken(user), MapUser(user));
+    }
+
+    public UserDto GetCurrentUser(Guid userId)
+    {
+        var user = _db.Users.AsNoTracking().FirstOrDefault(u => u.Id == userId);
+        
+        return user == null ? throw new InfrastructureNotFoundException("User", userId) : MapUser(user);
+    }
+
+    private static UserDto MapUser(User user)
+    {
+        return new UserDto(user.Id, user.Username, user.Role, user.CreatedAt);
+    }
+
+    private static bool ValidatePasswordRules(string password)
+    {
+        var flag = passwordRegexRules.All(rule => Regex.IsMatch(password, rule));
+
+        if (password.Length < 8)
+        {
+            flag = false;
+        }
+        
+        return flag;
+    }
+    
+    
+}

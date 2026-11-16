@@ -1,0 +1,68 @@
+@startuml
+ 
+package "Domain models" {
+  class User {
+    +Id : Guid
+    +Username : string
+    +PasswordHash : byte[]
+    +PasswordSalt : byte[]
+    +Role : UserRole
+    +CreatedAt : DateTime
+  }
+ 
+  class ReviewRequest {
+    +Id : Guid
+    +AuthorId : Guid
+    +Title : string
+    +Description : string
+    +DocumentReference : string
+    +Status : RequestStatus
+    +AssignedReviewerId : Guid?
+    +CreatedAt : DateTime
+    +UpdatedAt : DateTime
+  }
+ 
+  class DocumentVersion {
+    +Id : Guid
+    +ReviewRequestId : Guid
+    +FileReference : string
+    +FileName : string
+    +FileSize : long
+    +MediaType : string
+    +UploadedById : Guid
+    +UploadedAt : DateTime
+  }
+ 
+  class Comment {
+    +Id : Guid
+    +ReviewRequestId : Guid
+    +AuthorId : Guid
+    +Text : string
+    +CreatedAt : DateTime
+  }
+ 
+  enum UserRole {
+    Author
+    Reviewer
+    Admin
+  }
+ 
+  enum RequestStatus {
+    Draft
+    Submitted
+    InReview
+    InRework
+    Approved
+  }
+}
+ 
+' Relationships
+User "1" --> "0..*" ReviewRequest : author
+User "1" --> "0..*" DocumentVersion : uploads
+User "1" --> "0..*" Comment : writes
+ 
+ReviewRequest "1" --> "0..*" DocumentVersion : has versions
+ReviewRequest "1" --> "0..*" Comment : has comments
+ReviewRequest "0..1" --> "1" User : assigned reviewer
+
+@enduml
